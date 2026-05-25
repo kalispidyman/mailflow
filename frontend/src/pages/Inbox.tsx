@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
@@ -239,6 +239,8 @@ export function Inbox() {
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'action' | 'read'>('all');
   const [providerFilter, setProviderFilter] = useState<'all' | 'gmail' | 'outlook'>('all');
 
+  const fetchIdRef = useRef(0);
+
   const showToast = (message: string, type: 'error' | 'success' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -247,28 +249,37 @@ export function Inbox() {
   // Reset when folder/account changes
   useEffect(() => {
     setEmails([]);
-    setTotal(0);
-    setUnreadCount(0);
-    setReadCount(0);
-    setActionCount(0);
+    // Do not reset totals to 0 to prevent visual flashing while loading new folder/account
   }, [folder, selectedAccount]);
 
   const fetchEmails = useCallback(async (silent = false) => {
+    const currentFetchId = ++fetchIdRef.current;
     if (!silent) setLoading(true);
     try {
       const res = await api.emails.list({ folder, account_id: selectedAccount, limit: 100 });
+      if (currentFetchId !== fetchIdRef.current) return; // Prevent race conditions
+      
       // Only update state if there is a change to prevent React from unnecessarily unmounting/flickering
       setEmails(prev => {
         const newData = res.emails || [];
         // Prevent glitch: If silent polling returns empty array but we have data, ignore it (backend might be processing)
         if (silent && newData.length === 0 && prev.length > 0) return prev;
         
-        // Quick reference check to avoid heavy stringify if identical
-        if (prev.length === newData.length) {
-          const isSame = prev.every((e, i) => e.id === newData[i]?.id && e.is_read === newData[i]?.is_read);
-          if (isSame) return prev;
-        }
-        return newData;
+        let changed = prev.length !== newData.length;
+        const merged = newData.map((newEmail: any) => {
+          const oldEmail = prev.find(e => e.id === newEmail.id);
+          if (oldEmail) {
+            if (oldEmail.is_read !== newEmail.is_read || oldEmail.needs_followup !== newEmail.needs_followup || oldEmail.folder !== newEmail.folder) {
+              changed = true;
+              return newEmail;
+            }
+            return oldEmail;
+          }
+          changed = true;
+          return newEmail;
+        });
+
+        return changed ? merged : prev;
       });
       
       // Update total conditionally to avoid flashing
@@ -281,7 +292,7 @@ export function Inbox() {
       if (res.read_count !== undefined) setReadCount(res.read_count);
       if (res.action_count !== undefined) setActionCount(res.action_count);
       
-    } catch { } finally { if (!silent) setLoading(false); }
+    } catch { } finally { if (!silent && currentFetchId === fetchIdRef.current) setLoading(false); }
   }, [folder, selectedAccount]);
 
   const handleSyncAll = async () => {
