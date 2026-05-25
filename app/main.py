@@ -11,9 +11,17 @@ from .routes.outlook_auth import router as outlook_auth_router
 
 app = FastAPI(title="Email Portal API", version="2.0.0")
 
+import os
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+if os.getenv("FRONTEND_URL"):
+    origins.append(os.getenv("FRONTEND_URL"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
