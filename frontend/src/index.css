@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    font-size: 110%; /* Globally scales all typography and layouts */
+  }
+  body {
+    @apply bg-[#050811] text-slate-100;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* ─── Premium Moving Blur Mesh Gradient Background ─── */
+@keyframes gradientBG {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 0%; }
+  50% { background-position: 100% 100%; }
+  75% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+.bg-gradient-moving {
+  background: 
+    linear-gradient(135deg, rgba(4, 9, 20, 0.95), rgba(2, 4, 10, 0.98)),
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+  background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%, 200% 200%;
+  animation: gradientBG 20s ease-in-out infinite;
+}
+
+/* ─── Premium Fluid Morphing Background Animations ─── */
+@keyframes morph1 {
+  0% {
+    border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  33% {
+    border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%;
+    transform: translate(80px, -100px) rotate(120deg) scale(1.15);
+  }
+  66% {
+    border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
+    transform: translate(-50px, 60px) rotate(240deg) scale(0.9);
+  }
+  100% {
+    border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+    transform: translate(0, 0) rotate(360deg) scale(1);
+  }
+}
+
+@keyframes morph2 {
+  0% {
+    border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%;
+    transform: translate(0, 0) rotate(360deg) scale(1.1);
+  }
+  50% {
+    border-radius: 35% 65% 40% 60% / 50% 35% 65% 50%;
+    transform: translate(-100px, 80px) rotate(180deg) scale(0.85);
+  }
+  100% {
+    border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%;
+    transform: translate(0, 0) rotate(0deg) scale(1.1);
+  }
+}
+
+@keyframes morph3 {
+  0% {
+    border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
+    transform: translate(0, 0) rotate(0deg) scale(0.9);
+  }
+  50% {
+    border-radius: 60% 40% 60% 40% / 40% 60% 40% 60%;
+    transform: translate(90px, -70px) rotate(180deg) scale(1.15);
+  }
+  100% {
+    border-radius: 50% 50% 30% 70% / 50% 60% 40% 50%;
+    transform: translate(0, 0) rotate(360deg) scale(0.9);
+  }
+}
+
+.bg-orb-1 { animation: morph1 28s ease-in-out infinite; }
+.bg-orb-2 { animation: morph2 32s ease-in-out infinite; }
+.bg-orb-3 { animation: morph3 36s ease-in-out infinite; }
+
+
+
+/* ─── Scrollbars ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.15); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.3); }
+
+/* ─── Glass card ─── */
+.glass {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.glass-sm {
+  background: rgba(15, 23, 42, 0.40);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ─── Gradient text ─── */
+.text-gradient {
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Neon glow effects ─── */
+.glow-blue  { box-shadow: 0 0 20px rgba(59,130,246,0.25); }
+.glow-purple{ box-shadow: 0 0 20px rgba(168,85,247,0.25); }
+
+/* ─── Sidebar nav active indicator ─── */
+.nav-active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(168,85,247,0.10));
+  border: 1px solid rgba(99,102,241,0.2);
+}
+
+/* ─── Email row highlight on hover ─── */
+.email-row {
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.email-row:hover { background: rgba(30,41,59,0.6); }
+.email-row.unread { background: rgba(15,23,42,0.75); border-color: rgba(99,102,241,0.2); }
+
+/* ─── Input focus ring ─── */
+.input-base {
+  @apply w-full bg-slate-950/60 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-base:focus {
+  border-color: rgba(99,102,241,0.5);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+/* ─── Button base ─── */
+.btn-primary {
+  @apply px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(99,102,241,0.4);
+}
+.btn-primary:active { transform: translateY(0); }
+
+/* ─── Page fade-in ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: fadeUp 0.35s cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
+
+/* ─── Animated gradient border ─── */
+@keyframes borderGlow {
+  0%,100% { border-color: rgba(99,102,241,0.3); }
+  50%      { border-color: rgba(168,85,247,0.5); }
+}
+.border-animate { animation: borderGlow 3s ease-in-out infinite; }
+
+/* ─── Unread dot pulse ─── */
+@keyframes pulseBlue {
+  0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+  50%     { box-shadow: 0 0 0 4px rgba(59,130,246,0); }
+}
+.unread-dot { animation: pulseBlue 2s ease-in-out infinite; }
+
+/* ─── High Contrast Overrides for Text & Card Visibility ─── */
+.bg-slate-900\/40 {
+  background-color: rgba(13, 20, 38, 0.85) !important;
+  backdrop-filter: blur(28px) !important;
+}
+.border-slate-800\/80 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
