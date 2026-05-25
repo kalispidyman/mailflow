@@ -58,6 +58,20 @@ def sync_all_accounts(background_tasks: BackgroundTasks, user: User = Depends(ge
         
     return {"message": f"Sync started for {len(accounts)} accounts in background", "status": "syncing"}
 
+@router.get("/cron/sync")
+def cron_sync_all_accounts(secret: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    import os
+    # Simple security to prevent random people from triggering syncs
+    expected_secret = os.environ.get("CRON_SECRET", "mailflow_cron_key_123")
+    if secret != expected_secret:
+        raise HTTPException(status_code=401, detail="Invalid cron secret")
+
+    accounts = db.query(EmailAccount).filter(EmailAccount.is_active == True).all()
+    for account in accounts:
+        background_tasks.add_task(background_sync_worker, account.id)
+        
+    return {"message": f"Cron sync started for {len(accounts)} accounts", "status": "syncing"}
+
 @router.delete("/{account_id}")
 def delete_account(account_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     account = db.query(EmailAccount).filter(
