@@ -44,6 +44,9 @@ class EmailAccount(Base):
     is_primary = Column(Boolean, default=False)
     last_sync_at = Column(DateTime)
     is_active = Column(Boolean, default=True)
+    is_historical_syncing = Column(Boolean, default=False)
+    sync_token = Column(Text, nullable=True) # Delta sync token for History APIs
+    next_page_token = Column(Text, nullable=True) # Pagination token for initial historic sync
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     user = relationship("User", back_populates="email_accounts")
     emails = relationship("Email", back_populates="account", cascade="all, delete-orphan")

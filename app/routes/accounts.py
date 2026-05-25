@@ -30,6 +30,7 @@ def list_accounts(user: User = Depends(get_current_user), db: Session = Depends(
         "display_name": a.display_name,
         "provider": a.provider,
         "is_primary": a.is_primary,
+        "is_historical_syncing": a.is_historical_syncing,
         "last_sync_at": (a.last_sync_at.isoformat() + "Z") if a.last_sync_at else None,
         "profile_picture": a.profile_picture,
         "created_at": (a.created_at.isoformat() + "Z") if a.created_at else None,

@@ -90,6 +90,33 @@ export function Dashboard() {
         </div>
       </div>
 
+      {accounts.some(a => a.is_historical_syncing) && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 bg-blue-900/20 border border-blue-500/30 rounded-2xl p-4 backdrop-blur-md shadow-lg shadow-blue-500/10"
+        >
+          <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20 animate-ping" />
+            <div className="absolute inset-0 rounded-full border-2 border-t-blue-500 animate-spin" />
+            <Sparkles className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-blue-100 flex items-center gap-2">
+              Syncing Archive
+              <span className="flex items-center gap-1">
+                <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1 h-1 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            </h4>
+            <p className="text-xs text-blue-300/80 mt-0.5">
+              We are securely downloading your historical emails in the background. Your inbox will automatically populate over the next few hours.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {!hasData ? (
         <motion.div 
           initial={{ opacity: 0, y: 30 }} 
