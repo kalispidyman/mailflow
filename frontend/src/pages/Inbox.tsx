@@ -239,7 +239,11 @@ export function Inbox() {
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'action' | 'read'>('all');
   const [providerFilter, setProviderFilter] = useState<'all' | 'gmail' | 'outlook'>('all');
 
-  const fetchIdRef = useRef(0);
+  const activeContextRef = useRef({ folder, selectedAccount });
+  
+  useEffect(() => {
+    activeContextRef.current = { folder, selectedAccount };
+  }, [folder, selectedAccount]);
 
   const showToast = (message: string, type: 'error' | 'success' = 'success') => {
     setToast({ message, type });
@@ -253,11 +257,12 @@ export function Inbox() {
   }, [folder, selectedAccount]);
 
   const fetchEmails = useCallback(async (silent = false) => {
-    const currentFetchId = ++fetchIdRef.current;
     if (!silent) setLoading(true);
     try {
       const res = await api.emails.list({ folder, account_id: selectedAccount, limit: 100 });
-      if (currentFetchId !== fetchIdRef.current) return; // Prevent race conditions
+      
+      // Prevent race conditions by checking if the user navigated to a different folder/account while fetching
+      if (activeContextRef.current.folder !== folder || activeContextRef.current.selectedAccount !== selectedAccount) return;
       
       // Only update state if there is a change to prevent React from unnecessarily unmounting/flickering
       setEmails(prev => {
@@ -292,7 +297,11 @@ export function Inbox() {
       if (res.read_count !== undefined) setReadCount(res.read_count);
       if (res.action_count !== undefined) setActionCount(res.action_count);
       
-    } catch { } finally { if (!silent && currentFetchId === fetchIdRef.current) setLoading(false); }
+    } catch { } finally {
+      if (!silent && activeContextRef.current.folder === folder && activeContextRef.current.selectedAccount === selectedAccount) {
+        setLoading(false);
+      }
+    }
   }, [folder, selectedAccount]);
 
   const handleSyncAll = async () => {
