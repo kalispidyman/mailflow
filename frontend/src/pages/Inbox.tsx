@@ -83,7 +83,6 @@ function EmailRow({ email, accounts, onNavigate, onToggleRead, onDelete, onResto
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -244,6 +243,15 @@ export function Inbox() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  // Reset when folder/account changes
+  useEffect(() => {
+    setEmails([]);
+    setTotal(0);
+    setUnreadCount(0);
+    setReadCount(0);
+    setActionCount(0);
+  }, [folder, selectedAccount]);
 
   const fetchEmails = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);

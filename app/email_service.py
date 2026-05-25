@@ -459,7 +459,7 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                                 oldest_fetched_date = existing.received_at
                         
                         # Sync read status and folder
-                        msg = service.users().messages().get(userId="me", id=msg_id, format="minimal").execute()
+                        msg = service.users().messages().get(userId="me", id=msg_id, format="metadata").execute()
                         label_ids = msg.get("labelIds", [])
                         is_read = "UNREAD" not in label_ids
                         

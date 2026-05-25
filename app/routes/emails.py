@@ -40,7 +40,7 @@ def list_emails(
     read_count = query.filter(Email.is_read == True).count()
     action_count = query.filter(Email.needs_followup == True).count()
 
-    emails = query.order_by(desc(Email.received_at)).offset(offset).limit(limit).all()
+    emails = query.order_by(desc(Email.received_at), desc(Email.id)).offset(offset).limit(limit).all()
 
     return {
         "total": total,
