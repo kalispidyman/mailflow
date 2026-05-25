@@ -443,6 +443,8 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
             total = len(messages)
             synced = 0
 
+            oldest_fetched_date = None
+
             for msg_ref in messages:
                 try:
                     msg_id = msg_ref["id"]
@@ -451,6 +453,9 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                         Email.message_id == msg_id
                     ).first()
                     if existing:
+                        if existing.received_at:
+                            if oldest_fetched_date is None or existing.received_at < oldest_fetched_date:
+                                oldest_fetched_date = existing.received_at
                         continue
 
                     msg = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
@@ -509,9 +514,13 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                     received_at = None
                     try:
                         from email.utils import parsedate_to_datetime
-                        received_at = parsedate_to_datetime(date_str)
+                        received_at = parsedate_to_datetime(date_str).replace(tzinfo=None)
                     except Exception:
                         received_at = datetime.datetime.utcnow()
+
+                    if received_at:
+                        if oldest_fetched_date is None or received_at < oldest_fetched_date:
+                            oldest_fetched_date = received_at
 
                     thread_id = msg.get("threadId", msg_id)
                     analysis = analyze_email(subject, body_text or body_html, sender_email)
@@ -547,21 +556,23 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                     continue
 
             # ── Deletion & read-status sync ──────────────────────────────
-            # Build a set of all message IDs currently on the server
             server_msg_ids = {msg_ref["id"] for msg_ref in messages}
 
-            # Remove emails that no longer exist on the server
-            local_emails = db.query(Email).filter(Email.account_id == account.id).all()
-            for le in local_emails:
-                if le.message_id not in server_msg_ids:
-                    from .models import FollowUp, EmailLabel
-                    db.query(FollowUp).filter(FollowUp.email_id == le.id).delete()
-                    db.query(EmailLabel).filter(EmailLabel.email_id == le.id).delete()
-                    db.delete(le)
-            try:
-                db.commit()
-            except Exception:
-                db.rollback()
+            if oldest_fetched_date:
+                local_emails = db.query(Email).filter(
+                    Email.account_id == account.id,
+                    Email.received_at >= oldest_fetched_date
+                ).all()
+                for le in local_emails:
+                    if le.message_id not in server_msg_ids:
+                        from .models import FollowUp, EmailLabel
+                        db.query(FollowUp).filter(FollowUp.email_id == le.id).delete()
+                        db.query(EmailLabel).filter(EmailLabel.email_id == le.id).delete()
+                        db.delete(le)
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
             # ─────────────────────────────────────────────────────────────
 
             db_account = db.query(EmailAccount).filter(EmailAccount.id == account.id).first()
@@ -757,6 +768,8 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
             messages = data.get("value", [])
             total = len(messages)
             synced = 0
+            
+            oldest_fetched_date = None
 
             for msg in messages:
                 try:
@@ -781,6 +794,9 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
                         ).first()
                         
                     if existing:
+                        if existing.received_at:
+                            if oldest_fetched_date is None or existing.received_at < oldest_fetched_date:
+                                oldest_fetched_date = existing.received_at
                         continue
 
                     subject = msg.get("subject", "")
@@ -804,6 +820,10 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
                             received_at = datetime.datetime.fromisoformat(received_at_str.replace("Z", "+00:00")).replace(tzinfo=None)
                         except Exception:
                             pass
+                    
+                    if received_at:
+                        if oldest_fetched_date is None or received_at < oldest_fetched_date:
+                            oldest_fetched_date = received_at
 
                     is_read = msg.get("isRead", False)
                     is_flagged = msg.get("flag", {}).get("flagStatus") == "flagged"
@@ -854,8 +874,15 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
                 parent = msg.get("parentFolderId", "")
                 server_folder_map[mid] = folder_map.get(parent, "INBOX")
 
-            # Remove emails that no longer exist on the server
-            local_emails = db.query(Email).filter(Email.account_id == account.id).all()
+            # Remove emails that no longer exist on the server (only within the fetched date range)
+            if oldest_fetched_date:
+                local_emails = db.query(Email).filter(
+                    Email.account_id == account.id,
+                    Email.received_at >= oldest_fetched_date
+                ).all()
+            else:
+                local_emails = []
+                
             for le in local_emails:
                 if le.message_id not in server_msg_ids:
                     # Email was permanently deleted on the server
