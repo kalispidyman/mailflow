@@ -546,6 +546,24 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                     db.rollback()
                     continue
 
+            # ── Deletion & read-status sync ──────────────────────────────
+            # Build a set of all message IDs currently on the server
+            server_msg_ids = {msg_ref["id"] for msg_ref in messages}
+
+            # Remove emails that no longer exist on the server
+            local_emails = db.query(Email).filter(Email.account_id == account.id).all()
+            for le in local_emails:
+                if le.message_id not in server_msg_ids:
+                    from .models import FollowUp, EmailLabel
+                    db.query(FollowUp).filter(FollowUp.email_id == le.id).delete()
+                    db.query(EmailLabel).filter(EmailLabel.email_id == le.id).delete()
+                    db.delete(le)
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+            # ─────────────────────────────────────────────────────────────
+
             db_account = db.query(EmailAccount).filter(EmailAccount.id == account.id).first()
             if db_account:
                 db_account.last_sync_at = datetime.datetime.utcnow()
@@ -823,6 +841,44 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
                 except Exception:
                     db.rollback()
                     continue
+
+            # ── Deletion & read-status sync ──────────────────────────────
+            # Build a set of all message IDs currently on the server
+            server_msg_ids = set()
+            server_read_map = {}   # internetMessageId -> isRead
+            server_folder_map = {}  # internetMessageId -> folder
+            for msg in messages:
+                mid = msg.get("internetMessageId") or msg.get("id")
+                server_msg_ids.add(mid)
+                server_read_map[mid] = msg.get("isRead", False)
+                parent = msg.get("parentFolderId", "")
+                server_folder_map[mid] = folder_map.get(parent, "INBOX")
+
+            # Remove emails that no longer exist on the server
+            local_emails = db.query(Email).filter(Email.account_id == account.id).all()
+            for le in local_emails:
+                if le.message_id not in server_msg_ids:
+                    # Email was permanently deleted on the server
+                    from .models import FollowUp, EmailLabel
+                    db.query(FollowUp).filter(FollowUp.email_id == le.id).delete()
+                    db.query(EmailLabel).filter(EmailLabel.email_id == le.id).delete()
+                    db.delete(le)
+                else:
+                    # Sync read status and folder from server
+                    changed = False
+                    new_read = server_read_map.get(le.message_id, le.is_read)
+                    new_folder = server_folder_map.get(le.message_id, le.folder)
+                    if le.is_read != new_read:
+                        le.is_read = new_read
+                        changed = True
+                    if le.folder != new_folder:
+                        le.folder = new_folder
+                        changed = True
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+            # ─────────────────────────────────────────────────────────────
 
             db_account = db.query(EmailAccount).filter(EmailAccount.id == account.id).first()
             if db_account:

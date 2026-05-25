@@ -46,22 +46,21 @@ async def background_sync_task():
             try:
                 accounts = db.query(EmailAccount).filter(EmailAccount.is_active == True).all()
                 for account in accounts:
-                    # Sync only if it has never been synced or if it was last synced > 1.5 seconds ago
+                    # Sync every 5 seconds — fast enough to feel instant, won't rate-limit APIs
                     now = datetime.datetime.utcnow()
                     needs_sync = (
                         account.last_sync_at is None or 
-                        (now - account.last_sync_at).total_seconds() > 1.5
+                        (now - account.last_sync_at).total_seconds() > 5
                     )
                     if needs_sync:
-                        # Spawn the sync thread in the background without blocking the loop
                         asyncio.create_task(asyncio.to_thread(sync_account_emails, account))
             finally:
                 db.close()
         except Exception as e:
             print(f"Background sync error: {e}")
         
-        # Check every 1 second for any accounts that need syncing
-        await asyncio.sleep(1)
+        # Check every 500ms — tight loop for fast detection
+        await asyncio.sleep(0.5)
 
 @app.get("/api/health")
 def health():

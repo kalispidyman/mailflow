@@ -269,7 +269,7 @@ export function Inbox() {
   useEffect(() => { api.accounts.list().then(setAccounts).catch(() => { }); }, []);
   useEffect(() => {
     fetchEmails();
-    const id = setInterval(() => fetchEmails(true), 1500);
+    const id = setInterval(() => fetchEmails(true), 800);
     return () => clearInterval(id);
   }, [fetchEmails]);
 
