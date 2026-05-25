@@ -246,7 +246,11 @@ export function Inbox() {
     if (!silent) setLoading(true);
     try {
       const res = await api.emails.list({ folder, account_id: selectedAccount, limit: 100 });
-      setEmails(res.emails || []);
+      // Only update state if there is a change to prevent React from unnecessarily unmounting/flickering
+      setEmails(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(res.emails)) return prev;
+        return res.emails || [];
+      });
       setTotal(res.total || 0);
     } catch { } finally { if (!silent) setLoading(false); }
   }, [folder, selectedAccount]);
