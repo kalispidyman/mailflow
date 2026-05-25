@@ -13,7 +13,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-to-a-very-long-random-str
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480
 
-DATABASE_URL = f"sqlite:///{INSTANCE_DIR}/email_portal.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{INSTANCE_DIR}/email_portal.db")
 
 ENCRYPTION_KEY = os.environ.get("ENCRYPTION_KEY", None)
 
