@@ -452,10 +452,35 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                         Email.account_id == account.id,
                         Email.message_id == msg_id
                     ).first()
+                    
                     if existing:
                         if existing.received_at:
                             if oldest_fetched_date is None or existing.received_at < oldest_fetched_date:
                                 oldest_fetched_date = existing.received_at
+                        
+                        # Sync read status and folder
+                        msg = service.users().messages().get(userId="me", id=msg_id, format="minimal").execute()
+                        label_ids = msg.get("labelIds", [])
+                        is_read = "UNREAD" not in label_ids
+                        
+                        folder = "INBOX"
+                        if "TRASH" in label_ids:
+                            folder = "TRASH"
+                        elif "SPAM" in label_ids:
+                            folder = "SPAM"
+                        elif "SENT" in label_ids:
+                            folder = "SENT"
+                            
+                        changed = False
+                        if existing.is_read != is_read:
+                            existing.is_read = is_read
+                            changed = True
+                        if existing.folder != folder:
+                            existing.folder = folder
+                            changed = True
+                            
+                        if changed:
+                            db.commit()
                         continue
 
                     msg = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
@@ -555,25 +580,7 @@ def fetch_gmail_emails(account: EmailAccount, max_results: int = 500) -> dict:
                     db.rollback()
                     continue
 
-            # ── Deletion & read-status sync ──────────────────────────────
-            server_msg_ids = {msg_ref["id"] for msg_ref in messages}
-
-            if oldest_fetched_date:
-                local_emails = db.query(Email).filter(
-                    Email.account_id == account.id,
-                    Email.received_at >= oldest_fetched_date
-                ).all()
-                for le in local_emails:
-                    if le.message_id not in server_msg_ids:
-                        from .models import FollowUp, EmailLabel
-                        db.query(FollowUp).filter(FollowUp.email_id == le.id).delete()
-                        db.query(EmailLabel).filter(EmailLabel.email_id == le.id).delete()
-                        db.delete(le)
-                try:
-                    db.commit()
-                except Exception:
-                    db.rollback()
-            # ─────────────────────────────────────────────────────────────
+            # Removed broken deletion inference logic that deleted emails not in the top N fetched.
 
             db_account = db.query(EmailAccount).filter(EmailAccount.id == account.id).first()
             if db_account:
@@ -630,7 +637,7 @@ def sync_account_emails(account: EmailAccount, max_results: int = None) -> dict:
     syncing_accounts.add(account.id)
     try:
         if max_results is None:
-            max_results = 100 if account.last_sync_at is None else 5
+            max_results = 500 if account.last_sync_at is None else 20
 
         if account.provider == "gmail" and account.oauth_refresh_token:
             result = fetch_gmail_emails(account, max_results=max_results)
@@ -797,6 +804,19 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
                         if existing.received_at:
                             if oldest_fetched_date is None or existing.received_at < oldest_fetched_date:
                                 oldest_fetched_date = existing.received_at
+                                
+                        # Sync read status and folder
+                        new_read = msg.get("isRead", False)
+                        new_folder = folder_map.get(msg.get("parentFolderId"), "INBOX")
+                        changed = False
+                        if existing.is_read != new_read:
+                            existing.is_read = new_read
+                            changed = True
+                        if existing.folder != new_folder:
+                            existing.folder = new_folder
+                            changed = True
+                        if changed:
+                            db.commit()
                         continue
 
                     subject = msg.get("subject", "")
@@ -862,50 +882,7 @@ def fetch_outlook_emails(account: EmailAccount, max_results: int = 100) -> dict:
                     db.rollback()
                     continue
 
-            # ── Deletion & read-status sync ──────────────────────────────
-            # Build a set of all message IDs currently on the server
-            server_msg_ids = set()
-            server_read_map = {}   # internetMessageId -> isRead
-            server_folder_map = {}  # internetMessageId -> folder
-            for msg in messages:
-                mid = msg.get("internetMessageId") or msg.get("id")
-                server_msg_ids.add(mid)
-                server_read_map[mid] = msg.get("isRead", False)
-                parent = msg.get("parentFolderId", "")
-                server_folder_map[mid] = folder_map.get(parent, "INBOX")
-
-            # Remove emails that no longer exist on the server (only within the fetched date range)
-            if oldest_fetched_date:
-                local_emails = db.query(Email).filter(
-                    Email.account_id == account.id,
-                    Email.received_at >= oldest_fetched_date
-                ).all()
-            else:
-                local_emails = []
-                
-            for le in local_emails:
-                if le.message_id not in server_msg_ids:
-                    # Email was permanently deleted on the server
-                    from .models import FollowUp, EmailLabel
-                    db.query(FollowUp).filter(FollowUp.email_id == le.id).delete()
-                    db.query(EmailLabel).filter(EmailLabel.email_id == le.id).delete()
-                    db.delete(le)
-                else:
-                    # Sync read status and folder from server
-                    changed = False
-                    new_read = server_read_map.get(le.message_id, le.is_read)
-                    new_folder = server_folder_map.get(le.message_id, le.folder)
-                    if le.is_read != new_read:
-                        le.is_read = new_read
-                        changed = True
-                    if le.folder != new_folder:
-                        le.folder = new_folder
-                        changed = True
-            try:
-                db.commit()
-            except Exception:
-                db.rollback()
-            # ─────────────────────────────────────────────────────────────
+            # Removed broken deletion inference logic that deleted emails not in the top N fetched.
 
             db_account = db.query(EmailAccount).filter(EmailAccount.id == account.id).first()
             if db_account:

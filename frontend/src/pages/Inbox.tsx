@@ -229,6 +229,9 @@ export function Inbox() {
   const [emails, setEmails] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [readCount, setReadCount] = useState(0);
+  const [actionCount, setActionCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncingAll, setSyncingAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -265,6 +268,11 @@ export function Inbox() {
         if (silent && (res.total || 0) === 0 && prev > 0) return prev;
         return res.total || 0;
       });
+      
+      if (res.unread_count !== undefined) setUnreadCount(res.unread_count);
+      if (res.read_count !== undefined) setReadCount(res.read_count);
+      if (res.action_count !== undefined) setActionCount(res.action_count);
+      
     } catch { } finally { if (!silent) setLoading(false); }
   }, [folder, selectedAccount]);
 
@@ -297,6 +305,9 @@ export function Inbox() {
       const res = await api.emails.search(searchQuery);
       setEmails(res.emails || []);
       setTotal(res.emails?.length || 0);
+      setUnreadCount(res.emails?.filter((e: any) => !e.is_read).length || 0);
+      setReadCount(res.emails?.filter((e: any) => e.is_read).length || 0);
+      setActionCount(res.emails?.filter((e: any) => e.needs_followup).length || 0);
     } catch { } finally { setLoading(false); }
   };
 
@@ -338,9 +349,9 @@ export function Inbox() {
 
   const stats = [
     { label: 'Total', value: total, key: 'all', icon: Mail, color: '#3b82f6' },
-    { label: 'Unread', value: emails.filter(e => !e.is_read).length, key: 'unread', icon: InboxIcon, color: '#6366f1' },
-    { label: 'Action', value: emails.filter(e => e.needs_followup).length, key: 'action', icon: Sparkles, color: '#f59e0b' },
-    { label: 'Read', value: emails.filter(e => e.is_read).length, key: 'read', icon: CheckCircle2, color: '#10b981' },
+    { label: 'Unread', value: unreadCount || emails.filter(e => !e.is_read).length, key: 'unread', icon: InboxIcon, color: '#6366f1' },
+    { label: 'Action', value: actionCount || emails.filter(e => e.needs_followup).length, key: 'action', icon: Sparkles, color: '#f59e0b' },
+    { label: 'Read', value: readCount || emails.filter(e => e.is_read).length, key: 'read', icon: CheckCircle2, color: '#10b981' },
   ];
 
   return (

@@ -34,10 +34,19 @@ def list_emails(
         query = query.filter(Email.account_id == account_id)
 
     total = query.count()
+    
+    # Calculate counts properly across the entire folder/query, not just the limited subset
+    unread_count = query.filter(Email.is_read == False).count()
+    read_count = query.filter(Email.is_read == True).count()
+    action_count = query.filter(Email.needs_followup == True).count()
+
     emails = query.order_by(desc(Email.received_at)).offset(offset).limit(limit).all()
 
     return {
         "total": total,
+        "unread_count": unread_count,
+        "read_count": read_count,
+        "action_count": action_count,
         "limit": limit,
         "offset": offset,
         "emails": [format_email(e) for e in emails],
