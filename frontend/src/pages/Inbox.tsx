@@ -248,10 +248,23 @@ export function Inbox() {
       const res = await api.emails.list({ folder, account_id: selectedAccount, limit: 100 });
       // Only update state if there is a change to prevent React from unnecessarily unmounting/flickering
       setEmails(prev => {
-        if (JSON.stringify(prev) === JSON.stringify(res.emails)) return prev;
-        return res.emails || [];
+        const newData = res.emails || [];
+        // Prevent glitch: If silent polling returns empty array but we have data, ignore it (backend might be processing)
+        if (silent && newData.length === 0 && prev.length > 0) return prev;
+        
+        // Quick reference check to avoid heavy stringify if identical
+        if (prev.length === newData.length) {
+          const isSame = prev.every((e, i) => e.id === newData[i]?.id && e.is_read === newData[i]?.is_read);
+          if (isSame) return prev;
+        }
+        return newData;
       });
-      setTotal(res.total || 0);
+      
+      // Update total conditionally to avoid flashing
+      setTotal(prev => {
+        if (silent && (res.total || 0) === 0 && prev > 0) return prev;
+        return res.total || 0;
+      });
     } catch { } finally { if (!silent) setLoading(false); }
   }, [folder, selectedAccount]);
 
