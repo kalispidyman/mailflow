@@ -240,6 +240,7 @@ export function Inbox() {
   const [providerFilter, setProviderFilter] = useState<'all' | 'gmail' | 'outlook'>('all');
 
   const activeContextRef = useRef({ folder, selectedAccount });
+  const cacheRef = useRef<Record<string, any>>({});
   
   useEffect(() => {
     activeContextRef.current = { folder, selectedAccount };
@@ -250,23 +251,42 @@ export function Inbox() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Reset when folder/account changes
+  // Load from cache instantly when folder/account changes
   useEffect(() => {
-    setEmails([]);
-    // Do not reset totals to 0 to prevent visual flashing while loading new folder/account
+    const key = `${folder}-${selectedAccount || 'all'}`;
+    if (cacheRef.current[key]) {
+      const c = cacheRef.current[key];
+      setEmails(c.emails);
+      setTotal(c.total);
+      setUnreadCount(c.unread_count);
+      setReadCount(c.read_count);
+      setActionCount(c.action_count);
+    } else {
+      setEmails([]);
+    }
   }, [folder, selectedAccount]);
 
   const fetchEmails = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
+    const key = `${folder}-${selectedAccount || 'all'}`;
+    const hasCache = !!cacheRef.current[key];
+    if (!silent && !hasCache) setLoading(true);
     try {
       const res = await api.emails.list({ folder, account_id: selectedAccount, limit: 100 });
       
       // Prevent race conditions by checking if the user navigated to a different folder/account while fetching
       if (activeContextRef.current.folder !== folder || activeContextRef.current.selectedAccount !== selectedAccount) return;
       
+      const newData = res.emails || [];
+      cacheRef.current[key] = {
+        emails: newData,
+        total: res.total || 0,
+        unread_count: res.unread_count || 0,
+        read_count: res.read_count || 0,
+        action_count: res.action_count || 0
+      };
+
       // Only update state if there is a change to prevent React from unnecessarily unmounting/flickering
       setEmails(prev => {
-        const newData = res.emails || [];
         // Prevent glitch: If silent polling returns empty array but we have data, ignore it (backend might be processing)
         if (silent && newData.length === 0 && prev.length > 0) return prev;
         
@@ -298,7 +318,7 @@ export function Inbox() {
       if (res.action_count !== undefined) setActionCount(res.action_count);
       
     } catch { } finally {
-      if (!silent && activeContextRef.current.folder === folder && activeContextRef.current.selectedAccount === selectedAccount) {
+      if (activeContextRef.current.folder === folder && activeContextRef.current.selectedAccount === selectedAccount) {
         setLoading(false);
       }
     }
