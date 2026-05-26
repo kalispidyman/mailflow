@@ -23,6 +23,22 @@ def init_db():
     import app.models
     Base.metadata.create_all(bind=engine)
     
+    # Schema evolution (auto-migrate missing columns for SQLite and Postgres)
+    db = SessionLocal()
+    try:
+        from sqlalchemy import text
+        db.execute(text("ALTER TABLE email_accounts ADD COLUMN is_historical_syncing BOOLEAN DEFAULT 0"))
+        db.commit()
+    except Exception:
+        db.rollback()
+        
+    try:
+        from sqlalchemy import text
+        db.execute(text("ALTER TABLE email_accounts ADD COLUMN is_historical_syncing BOOLEAN DEFAULT FALSE"))
+        db.commit()
+    except Exception:
+        db.rollback()
+    
     # Seed default user if none exists (for deployment persistence)
     db = SessionLocal()
     try:
