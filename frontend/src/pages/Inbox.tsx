@@ -155,26 +155,26 @@ function EmailRow({ email, accounts, onNavigate, onToggleRead, onDelete, onResto
             </span>
           </div>
           
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0 relative">
             {/* Date - hidden on hover */}
-            <span className={`text-[13px] group-hover:hidden ${!email.is_read ? 'text-slate-200 font-bold' : 'text-slate-400'}`}>
+            <span className={`text-[13px] transition-opacity duration-200 [@media(hover:hover)]:group-hover:opacity-0 ${!email.is_read ? 'text-slate-200 font-bold' : 'text-slate-400'}`}>
               {dateStr}
             </span>
             
             {/* Hover action buttons */}
-            <div className="hidden group-hover:flex items-center gap-1.5">
+            <div className="absolute right-0 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 flex items-center gap-0.5 transition-opacity duration-200 pointer-events-none [@media(hover:hover)]:group-hover:pointer-events-auto bg-slate-800/95 backdrop-blur-md p-1 rounded-xl shadow-xl border border-slate-700/60 z-10">
               <button
                 onClick={ev => onToggleRead(ev, email)}
-                className="px-3 py-1.5 rounded-xl text-[12.5px] font-bold text-slate-200 hover:text-sky-400 hover:bg-sky-400/10 border border-slate-800/80 transition-all flex items-center gap-1.5"
+                className="px-2.5 py-1.5 rounded-lg text-[12px] font-bold text-slate-200 hover:text-sky-400 hover:bg-sky-400/10 transition-all flex items-center gap-1.5"
                 title={email.is_read ? 'Mark unread' : 'Mark read'}
               >
                 {email.is_read ? <Circle style={{ width: 14, height: 14 }} /> : <CheckCircle2 style={{ width: 14, height: 14 }} />}
-                <span>{email.is_read ? 'Mark Unread' : 'Mark Read'}</span>
+                <span>{email.is_read ? 'Unread' : 'Read'}</span>
               </button>
               {email.folder === 'TRASH' && onRestore ? (
                 <button
                   onClick={ev => onRestore(ev, email.id)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 border border-slate-800/80 transition-all"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all"
                   title="Restore to Inbox"
                 >
                   <RotateCcw style={{ width: 14, height: 14 }} />
@@ -182,7 +182,7 @@ function EmailRow({ email, accounts, onNavigate, onToggleRead, onDelete, onResto
               ) : (
                 <button
                   onClick={ev => onDelete(ev, email.id)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 border border-slate-800/80 transition-all"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 transition-all"
                   title="Delete"
                 >
                   <Trash2 style={{ width: 14, height: 14 }} />
