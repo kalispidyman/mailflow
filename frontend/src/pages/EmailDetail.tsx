@@ -12,12 +12,14 @@ function Toast({ toast }: { toast: { message: string; type: 'error' | 'success' 
   return (
     <motion.div
       initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-      className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-sm font-semibold"
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full text-sm font-semibold shadow-xl"
       style={{
         background: toast.type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
         border: `1px solid ${toast.type === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
         color: toast.type === 'error' ? '#f87171' : '#34d399',
-        backdropFilter: 'blur(20px)',
+        backdropFilter: 'blur(12px)',
+        willChange: 'transform, opacity',
       }}
     >
       {toast.message}
@@ -25,18 +27,18 @@ function Toast({ toast }: { toast: { message: string; type: 'error' | 'success' 
   );
 }
 
-export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: () => void }) {
+export function EmailDetail({ emailId, initialData, onClose }: { emailId?: number, initialData?: any, onClose?: () => void }) {
   const { id: paramId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const id = emailId || paramId;
-  const [email, setEmail] = useState<any>(null);
+  const [email, setEmail] = useState<any>(initialData || null);
   const [team, setTeam] = useState<any[]>([]);
   const [followupNote, setFollowupNote] = useState('');
   const [followupDate, setFollowupDate] = useState('');
   const [labelName, setLabelName] = useState('');
   const [assignId, setAssignId] = useState<number | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
   const showToast = (message: string, type: 'error' | 'success' = 'success') => {
@@ -55,12 +57,12 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
+    if (!initialData) setLoading(true);
     Promise.all([api.emails.get(Number(id)), api.team.list().catch(() => [])])
       .then(([emailRes, teamRes]) => { setEmail(emailRes); setTeam(teamRes); })
       .catch(handleClose)
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, initialData]);
 
   const handleAssign   = async () => { if (!assignId || !email) return; await api.emails.assign(email.id, assignId); showToast('Assigned to team member'); };
   const handleFollowup = async () => { if (!email) return; await api.emails.followup(email.id, followupNote, followupDate); setFollowupNote(''); setFollowupDate(''); const u = await api.emails.get(email.id); setEmail(u); showToast('Follow-up saved'); };
@@ -95,13 +97,14 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
   const actionBar = (
     <motion.div
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
+      transition={{ delay: 0.05, duration: 0.15, ease: "easeOut" }}
       className="flex items-center justify-center py-3 px-4"
       style={{
         borderTop: '1px solid rgba(255,255,255,0.06)',
         background: 'rgba(8,12,20,0.85)',
-        backdropFilter: 'blur(24px)',
+        backdropFilter: 'blur(12px)',
         flexShrink: 0,
+        willChange: 'transform, opacity',
       }}
     >
       <div className="flex items-center gap-1 p-1.5 rounded-full"
@@ -153,8 +156,9 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
         {/* Email card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
           className="rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(12,18,30,0.45)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(24px)' }}
+          style={{ background: 'rgba(12,18,30,0.45)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', willChange: 'transform, opacity' }}
         >
           {/* Header */}
           <div className="p-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -255,9 +259,9 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {/* Assign */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05, duration: 0.15, ease: "easeOut" }}
             className="p-5 rounded-2xl"
-            style={{ background: 'rgba(12,18,30,0.4)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)' }}
+            style={{ background: 'rgba(12,18,30,0.4)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)', willChange: 'transform, opacity' }}
           >
             <h4 className="text-[12px] font-semibold text-slate-500 mb-3 flex items-center gap-2">
               <UserPlus style={{ width: 13, height: 13, color: '#60a5fa' }} /> Assign Member
@@ -280,9 +284,9 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
 
           {/* Label */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.15, ease: "easeOut" }}
             className="p-5 rounded-2xl"
-            style={{ background: 'rgba(12,18,30,0.4)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)' }}
+            style={{ background: 'rgba(12,18,30,0.4)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)', willChange: 'transform, opacity' }}
           >
             <h4 className="text-[12px] font-semibold text-slate-500 mb-3 flex items-center gap-2">
               <Tag style={{ width: 13, height: 13, color: '#a78bfa' }} /> Add Label
@@ -303,9 +307,9 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
 
         {/* Follow-up */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.15, ease: "easeOut" }}
           className="p-5 rounded-2xl mt-4"
-          style={{ background: 'rgba(12,18,30,0.4)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)' }}
+          style={{ background: 'rgba(12,18,30,0.4)', border: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)', willChange: 'transform, opacity' }}
         >
           <h4 className="text-[12px] font-semibold text-slate-500 mb-4 flex items-center gap-2">
             <Calendar style={{ width: 13, height: 13, color: '#34d399' }} /> Follow-ups
@@ -356,16 +360,18 @@ export function EmailDetail({ emailId, onClose }: { emailId?: number, onClose?: 
     return (
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-        style={{ background: 'rgba(2, 6, 23, 0.4)', backdropFilter: 'blur(8px)' }}
+        style={{ background: 'rgba(2, 6, 23, 0.4)', backdropFilter: 'blur(4px)', willChange: 'opacity' }}
         onClick={handleClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.98, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col"
-          style={{ background: 'rgba(15, 23, 42, 0.88)', backdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)' }}
+          exit={{ opacity: 0, scale: 0.98, y: 8 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl"
+          style={{ background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', willChange: 'transform, opacity' }}
           onClick={e => e.stopPropagation()}
         >
           {content}

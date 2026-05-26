@@ -65,7 +65,7 @@ function StatCard({
 
 function EmailRow({ email, accounts, onNavigate, onToggleRead, onDelete, onRestore }: {
   email: any; accounts: any[];
-  onNavigate: (id: number) => void;
+  onNavigate: (email: any) => void;
   onToggleRead: (e: React.MouseEvent, email: any) => void;
   onDelete: (e: React.MouseEvent, id: number) => void;
   onRestore?: (e: React.MouseEvent, id: number) => void;
@@ -83,11 +83,11 @@ function EmailRow({ email, accounts, onNavigate, onToggleRead, onDelete, onResto
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ duration: 0.2 }}
-      onClick={() => onNavigate(email.id)}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      onClick={() => onNavigate(email)}
       className="group flex items-center gap-3.5 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-150 relative mb-2.5"
       style={{
         background: currentBg,
@@ -234,7 +234,7 @@ export function Inbox() {
   const [loading, setLoading] = useState(true);
   const [syncingAll, setSyncingAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [openEmailId, setOpenEmailId] = useState<number | null>(null);
+  const [openEmail, setOpenEmail] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'action' | 'read'>('all');
   const [providerFilter, setProviderFilter] = useState<'all' | 'gmail' | 'outlook'>('all');
@@ -385,7 +385,7 @@ export function Inbox() {
   return (
     <div className="h-full flex text-slate-100 overflow-hidden">
       <AnimatePresence>{toast && <Toast toast={toast} />}</AnimatePresence>
-      <AnimatePresence>{openEmailId && <EmailDetail emailId={openEmailId} onClose={() => setOpenEmailId(null)} />}</AnimatePresence>
+      <AnimatePresence>{openEmail && <EmailDetail emailId={openEmail.id} initialData={openEmail} onClose={() => setOpenEmail(null)} />}</AnimatePresence>
 
       {/* ─── Left sidebar: Folders + Accounts ─── */}
       <div className="w-56 flex flex-col flex-shrink-0 relative z-10"
@@ -599,7 +599,7 @@ export function Inbox() {
               {filtered.map(e => (
                 <EmailRow
                   key={e.id} email={e} accounts={accounts}
-                  onNavigate={id => setOpenEmailId(id)}
+                  onNavigate={email => setOpenEmail(email)}
                   onToggleRead={handleToggleRead}
                   onDelete={handleDelete}
                   onRestore={handleRestore}
